@@ -1,35 +1,55 @@
-import { Scene } from 'phaser';
+﻿import {Scene} from "phaser";
+import {GameUI} from "../ui/GameUI.ts";
 
-export class Game extends Scene
-{
-    camera: Phaser.Cameras.Scene2D.Camera;
-    background: Phaser.GameObjects.Image;
-    msg_text : Phaser.GameObjects.Text;
+export interface IGameScene extends Scene {
+    width: number;
+    height: number;
+    readonly gameBgWidth: number;
+    readonly gameBgHeight: number;
+    readonly gameContainer: Phaser.GameObjects.Container;
+    readonly gameUI: GameUI;
+}
 
-    constructor ()
-    {
-        super('Game');
+export default class GameScene extends Scene implements IGameScene {
+    public gameContainer: Phaser.GameObjects.Container;
+    public width: number;
+    public height: number;
+    public gameBgWidth: number;
+    public gameBgHeight: number;
+    public gameUI: GameUI;
+
+    constructor() {
+        super({key: 'GameScene'});
     }
 
-    create ()
-    {
-        this.camera = this.cameras.main;
-        this.camera.setBackgroundColor(0x00ff00);
+    preload() {
+        this.width = this.sys.game.config.width as number;
+        this.height = this.sys.game.config.height as number;
+        this.gameBgWidth = this.width / 3;
+        this.gameBgHeight = this.height - 200;
+    }
 
-        this.background = this.add.image(512, 384, 'background');
-        this.background.setAlpha(0.5);
+    create() {
+        this.gameUI = new GameUI(this);
 
-        this.msg_text = this.add.text(512, 384, 'Make something fun!\nand share it with us:\nsupport@phaser.io', {
-            fontFamily: 'Arial Black', fontSize: 38, color: '#ffffff',
-            stroke: '#000000', strokeThickness: 8,
-            align: 'center'
-        });
-        this.msg_text.setOrigin(0.5);
+        // Tạo khung sẵn cho game
+        const gameBg = this.add.rectangle(0, 0, this.gameBgWidth, this.gameBgHeight, 0xbbada0)
+            .setOrigin(0);
 
-        this.input.once('pointerdown', () => {
-
-            this.scene.start('GameOver');
-
-        });
+        const BLOCK_GAP = 15; // Khoảng cách giữa các blocks
+        const BLOCK_PADDING = 15; // Padding từ mép của gameBg
+        const BLOCK_WIDTH = (this.gameBgWidth - (BLOCK_PADDING * 2) - (BLOCK_GAP * 3)) / 4; // Chiều rộng của mỗi block
+        const BLOCK_HEIGHT = 100; // Chiều cao của mỗi block
+        
+        const block = Array(4)
+            .fill(0)
+            .map((_, index: number) => {
+                const graphics = this.add.graphics();
+                graphics.fillStyle(0xccc0b3, 1);
+                const x = BLOCK_PADDING + (index * (BLOCK_WIDTH + BLOCK_GAP));
+                graphics.fillRoundedRect(x, BLOCK_PADDING, BLOCK_WIDTH, BLOCK_HEIGHT, 6);
+                return graphics;
+            });
+        this.gameContainer = this.add.container(this.width / 2 - this.gameBgWidth / 2 , 150, [gameBg, ...block]);
     }
 }
