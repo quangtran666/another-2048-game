@@ -1,5 +1,6 @@
 ﻿import {Scene} from "phaser";
 import {GameUI} from "../ui/GameUI.ts";
+import {BlockManager} from "../gameobjects/BlockManager.ts";
 
 export interface IGameScene extends Scene {
     width: number;
@@ -8,6 +9,8 @@ export interface IGameScene extends Scene {
     readonly gameBgHeight: number;
     readonly gameContainer: Phaser.GameObjects.Container;
     readonly gameUI: GameUI;
+    xGameCorContainer: number;
+    restartGame(): void;
 }
 
 export default class GameScene extends Scene implements IGameScene {
@@ -17,6 +20,13 @@ export default class GameScene extends Scene implements IGameScene {
     public gameBgWidth: number;
     public gameBgHeight: number;
     public gameUI: GameUI;
+    private blockManager: BlockManager;
+    public xGameCorContainer: number;
+    public W: Phaser.Input.Keyboard.Key | undefined;
+    public S: Phaser.Input.Keyboard.Key | undefined;
+    public A: Phaser.Input.Keyboard.Key | undefined;
+    public D: Phaser.Input.Keyboard.Key | undefined;
+    private cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
 
     constructor() {
         super({key: 'GameScene'});
@@ -27,29 +37,39 @@ export default class GameScene extends Scene implements IGameScene {
         this.height = this.sys.game.config.height as number;
         this.gameBgWidth = this.width / 3;
         this.gameBgHeight = this.height - 200;
+        this.xGameCorContainer = this.width / 2 - this.gameBgWidth / 2;
+        this.W = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+        this.S = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+        this.A = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+        this.D = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+        this.cursors = this.input.keyboard?.createCursorKeys();
     }
 
     create() {
         this.gameUI = new GameUI(this);
-
-        // Tạo khung sẵn cho game
+        this.blockManager = new BlockManager(this, this.gameUI, this.gameBgWidth, this.gameBgHeight);
+        this.createGameUI();
+    }
+    
+    private createGameUI() {
         const gameBg = this.add.rectangle(0, 0, this.gameBgWidth, this.gameBgHeight, 0xbbada0)
             .setOrigin(0);
-
-        const BLOCK_GAP = 15; // Khoảng cách giữa các blocks
-        const BLOCK_PADDING = 15; // Padding từ mép của gameBg
-        const BLOCK_WIDTH = (this.gameBgWidth - (BLOCK_PADDING * 2) - (BLOCK_GAP * 3)) / 4; // Chiều rộng của mỗi block
-        const BLOCK_HEIGHT = 100; // Chiều cao của mỗi block
-        
-        const block = Array(4)
-            .fill(0)
-            .map((_, index: number) => {
-                const graphics = this.add.graphics();
-                graphics.fillStyle(0xccc0b3, 1);
-                const x = BLOCK_PADDING + (index * (BLOCK_WIDTH + BLOCK_GAP));
-                graphics.fillRoundedRect(x, BLOCK_PADDING, BLOCK_WIDTH, BLOCK_HEIGHT, 6);
-                return graphics;
-            });
-        this.gameContainer = this.add.container(this.width / 2 - this.gameBgWidth / 2 , 150, [gameBg, ...block]);
+        this.gameContainer = this.add.container(this.xGameCorContainer, 150, [gameBg, ...this.blockManager.getBlockGraphic()]);
+    }
+    
+    update() {
+        if (Phaser.Input.Keyboard.JustDown(this.W!) || Phaser.Input.Keyboard.JustDown(this.cursors!.up)) {
+            this.blockManager.moveUp();
+        } else if (Phaser.Input.Keyboard.JustDown(this.S!) || Phaser.Input.Keyboard.JustDown(this.cursors!.down)) {
+            this.blockManager.moveDown();
+        } else if (Phaser.Input.Keyboard.JustDown(this.A!) || Phaser.Input.Keyboard.JustDown(this.cursors!.left)) {
+            this.blockManager.moveLeft();
+        } else if (Phaser.Input.Keyboard.JustDown(this.D!) || Phaser.Input.Keyboard.JustDown(this.cursors!.right)) {
+            this.blockManager.moveRight();
+        }
+    }
+    
+    public restartGame() {
+        this.scene.restart();
     }
 }

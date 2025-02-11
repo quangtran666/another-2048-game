@@ -1,10 +1,15 @@
 ﻿import {IGameScene} from "../scenes/Game.ts";
 
 export class GameUI {
+    private score: number = 0;
+    private bestScore: number = 0;
     private scene: IGameScene;
     private scoreTextContainer: Phaser.GameObjects.Container;
     private bestScoreTextContainer: Phaser.GameObjects.Container;
+    // @ts-ignore
     private newGameButtonContainer: Phaser.GameObjects.Container;
+    private scorePointText: Phaser.GameObjects.BitmapText;
+    private bestScorePointText: Phaser.GameObjects.BitmapText;
 
     private static readonly BUTTON_BG_WIDTH = 100;
     private static readonly BUTTON_BG_HEIGHT = 40;
@@ -50,7 +55,21 @@ export class GameUI {
             [buttonBg, buttonText, additionalText]
         );
         
-        this.newGameButtonContainer.on('pointerdown', () => {});
+        buttonBg.on('pointerover', () => {
+            buttonBg.setFillStyle(0x9f8a76);
+            this.scene.game.canvas.style.cursor = 'pointer';
+        })
+        buttonBg.on('pointerout', () => {
+            buttonBg.setFillStyle(0x8f7a66);
+            this.scene.game.canvas.style.cursor = 'default';
+        })
+        buttonBg.on('pointerdown', () => {
+            buttonBg.setFillStyle(0x7f6a56);
+        })
+        buttonBg.on('pointerup', () => {
+            buttonBg.setFillStyle(0x8f7a66);
+            this.scene.restartGame();
+        })
     }
 
     private createScoreContainer() {
@@ -64,11 +83,11 @@ export class GameUI {
             13
             )
             .setOrigin(0.5, 0);
-        const scorePoint = this.scene.add.bitmapText(
+        this.scorePointText = this.scene.add.bitmapText(
             GameUI.SCORE_BG_WIDTH / 2,
             22,
             'wendy',
-            '0',
+            this.score.toString(),
             12
             )
             .setOrigin(0.5, 0);
@@ -76,7 +95,7 @@ export class GameUI {
         this.scoreTextContainer = this.scene.add.container(
             this.scene.width / 2 + this.scene.gameBgWidth / 2 - GameUI.SCORE_BG_WIDTH,
             30,
-            [scoreBg, scoreText, scorePoint]
+            [scoreBg, scoreText, this.scorePointText]
         );
     }
 
@@ -91,11 +110,11 @@ export class GameUI {
             13
             )
             .setOrigin(0.5, 0);
-        const bestScorePointText = this.scene.add.bitmapText(
+        this.bestScorePointText = this.scene.add.bitmapText(
             GameUI.SCORE_BG_WIDTH / 2,
             22,
             'wendy',
-            '1300',
+            this.bestScore.toString(),
             12
             )
             .setOrigin(0.5, 0);
@@ -103,17 +122,48 @@ export class GameUI {
         this.bestScoreTextContainer = this.scene.add.container(
             this.scene.width / 2 + this.scene.gameBgWidth / 2 - GameUI.SCORE_BG_WIDTH * 2 - 20,
             30,
-            [bestBg, bestScoreText, bestScorePointText]
+            [bestBg, bestScoreText, this.bestScorePointText]
         );
     }
 
-    updateScore(score: number) {
-        const scorePoint = this.scoreTextContainer.list[2] as Phaser.GameObjects.Text;
-        scorePoint.setText(score.toString());
+    public updateScore(score: number) {
+        const textPoint = this.scene.add
+            .bitmapText(GameUI.SCORE_BG_WIDTH / 2, 22, 'wendy', `+${score}`, 12)
+            .setOrigin(0.5)
+            .setTint(0x776e65);
+        this.scoreTextContainer.add(textPoint);
+        this.scene.tweens.add({
+            targets: textPoint,
+            y: { from: 22 + 20, to: 22 },
+            alpha: { from: 1, to: 0 },
+            duration: 800,
+            onComplete: () => {
+                textPoint.destroy();
+            }
+        })
+        this.score += score;
+        this.scorePointText.setText(this.score.toString());
+        this.updateBestScore(this.score);
     }
 
-    updateBestScore(score: number) {
-        const bestScorePoint = this.bestScoreTextContainer.list[2] as Phaser.GameObjects.Text;
-        bestScorePoint.setText(score.toString());
+    public updateBestScore(score: number) {
+        this.bestScore = Math.max(this.bestScore, score);
+        if (this.bestScore !== score) return;
+
+        const textPoint = this.scene.add
+            .bitmapText(GameUI.SCORE_BG_WIDTH / 2, 22, 'wendy', `${this.bestScore}`, 12)
+            .setOrigin(0.5)
+            .setTint(0x776e65);
+        this.bestScoreTextContainer.add(textPoint);
+        this.scene.tweens.add({
+            targets: textPoint,
+            y: { from: 22 + 20, to: 22 },
+            alpha: { from: 1, to: 0 },
+            duration: 800,
+            onComplete: () => {
+                textPoint.destroy();
+            }
+        })
+        this.bestScorePointText.setText(this.bestScore.toString());
     }
 }
